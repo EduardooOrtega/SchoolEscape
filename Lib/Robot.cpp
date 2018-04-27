@@ -1,5 +1,10 @@
 #include "TXLib.h"
 #include "consmenu.cpp"
+#include <iostream>
+#include <fstream>
+#include <string>
+
+using namespace std;
 
 struct Robot
 {
@@ -20,24 +25,66 @@ struct Robot
     int frameTimer;
 };
 
-void drawRobot(Robot r)
+Robot robots[100];
+int nomerRobota = 0;
+
+void drawRobot(Robot r, int nomerRobota)
 {
 
     if (r.direction == DIRECTION_DOWN)
     {
-        txTransparentBlt(txDC(), r.x - r.width/2, r.y - r.height/2, r.width, r.height, r.picDown, r.frame * 45, 0, RGB(255, 255, 255));
+        txTransparentBlt(txDC(), r.x - r.width/2 - absolutX, r.y - r.height/2 - absolutY, r.width, r.height, r.picDown, r.frame * 45, 0, RGB(255, 255, 255));
     }
     else if (r.direction == DIRECTION_UP)
     {
-        txTransparentBlt(txDC(), r.x - r.width/2, r.y - r.height/2, r.width, r.height, r.picUp, r.frame * 47, 0, RGB(255, 255, 255));
+        txTransparentBlt(txDC(), r.x - r.width/2 - absolutX, r.y - r.height/2 - absolutY, r.width, r.height, r.picUp, r.frame * 47, 0, RGB(255, 255, 255));
     }
     else if (r.direction == DIRECTION_LEFT)
     {
-        txTransparentBlt(txDC(), r.x - r.width/2, r.y - r.height/2, r.width, r.height, r.picLeft, r.frame * 45, 0, RGB(255, 255, 255));
+        txTransparentBlt(txDC(), r.x - r.width/2 - absolutX, r.y - r.height/2 - absolutY, r.width, r.height, r.picLeft, r.frame * 45, 0, RGB(255, 255, 255));
     }
     else if (r.direction == DIRECTION_RIGHT)
     {
-        txTransparentBlt(txDC(), r.x - r.width/2, r.y - r.height/2, r.width, r.height, r.picRight, r.frame * 47, 0, RGB(255, 255, 255));
+        txTransparentBlt(txDC(), r.x - r.width/2 - absolutX, r.y - r.height/2 - absolutY, r.width, r.height, r.picRight, r.frame * 47, 0, RGB(255, 255, 255));
+    }
+}
+
+void readRobot(ifstream* Map, string stroka_Personage, Robot* robots, int* nomerRobota)
+{
+    string stroka_X = "";
+    string stroka_Y = "";
+    if (strcmp(stroka_Personage.c_str(), "robot") == 0)
+    {
+        getline (*Map, stroka_X);
+        robots[*nomerRobota].x = atoi(stroka_X.c_str());
+        getline (*Map, stroka_Y);
+        robots[*nomerRobota].y = atoi(stroka_Y.c_str());
+
+
+        robots[*nomerRobota].height = 62;
+        robots[*nomerRobota].speed = 5;
+        robots[*nomerRobota].manyframeRight = 4;
+        robots[*nomerRobota].manyframeLeft = 4;
+        robots[*nomerRobota].manyframeUp = 4;
+        robots[*nomerRobota].manyframeDown = 4;
+        robots[*nomerRobota].width = 50;
+        directionFrameFrameTimer(&robots[*nomerRobota].direction, &robots[*nomerRobota].frame, &robots[*nomerRobota].frameTimer);
+        if (*nomerRobota > 0)
+        {
+            robots[*nomerRobota].picDown = robots[0].picDown;
+            robots[*nomerRobota].picUp = robots[0].picUp;
+            robots[*nomerRobota].picLeft = robots[0].picLeft;
+            robots[*nomerRobota].picRight = robots[0].picRight;
+        }
+        else
+        {
+            robots[*nomerRobota].picDown = txLoadImage("IMG\\Men\\Robot\\RobotDown.bmp");
+            robots[*nomerRobota].picUp = txLoadImage("IMG\\Men\\Robot\\RobotUp.bmp");
+            robots[*nomerRobota].picLeft = txLoadImage("IMG\\Men\\Robot\\RobotLeft.bmp");
+            robots[*nomerRobota].picRight = txLoadImage("IMG\\Men\\Robot\\RobotRight.bmp");
+        }
+
+        *nomerRobota = *nomerRobota + 1;
     }
 }
 
@@ -64,28 +111,28 @@ void moveRobot(Robot* r)
         r->y += r->speed;
     }
 
-    if (r->x > txGetExtentX() - 100 - r->width)
+    if (r->x > txGetExtentX() - r->width)
     {
         while (r->direction == DIRECTION_RIGHT)
         {
             r->direction = random(4);
         }
     }
-    else if (r->x < 260 + r->width)
+    else if (r->x < 0 + r->width)
     {
         while (r->direction == DIRECTION_LEFT)
         {
             r->direction = random(4);
         }
     }
-    if (r->y > txGetExtentY() - 20 - r->height)
+    if (r->y > txGetExtentY() - r->height)
     {
         while (r->direction == DIRECTION_DOWN)
         {
             r->direction = random(4);
         }
     }
-    else if (r->y < 200 + r->height)
+    else if (r->y < 0 + r->height)
     {
         while (r->direction == DIRECTION_UP)
         {

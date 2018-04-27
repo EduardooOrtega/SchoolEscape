@@ -1,18 +1,22 @@
 #include "TXLib.h"
 #include "consmenu.cpp"
-
+#include "Bomzh.cpp"
+#include <iostream>
+#include <string>
+#include <fstream>
+using namespace std;
 
 
 struct Point
 {
     int x, y;
     int x1, y1;
+
     int x2, y2;
     int nomerPoint;
-    //int kolvoPoint;
 };
 
-
+Point p[100];
 
 struct Director
 {
@@ -34,27 +38,95 @@ struct Director
     HDC picRight;
     int frame;
     int frameTimer;
-    int radius;//радиус обзора
+    int radius;//область в которой директор тебя почуствует
+    CrashZone crash;
     //int exit_time;
+    int predX;
+    int predY;
+    int Stolknuls;
 };
 
+Director director[15];
+int nomerDirector = 0;
 
-void moveDirector(Director *d, Point *p)
+void readDirector(ifstream* Map, string stroka_Personage, Director* director, int* nomerDirector, Point* p)
 {
+    string stroka_X = "";
+    string stroka_Y = "";
+    if (strcmp(stroka_Personage.c_str(), "director") == 0)
+    {
+        getline (*Map, stroka_X);
+        director[*nomerDirector].x = atoi(stroka_X.c_str());
+        getline (*Map, stroka_Y);
+        director[*nomerDirector].y = atoi(stroka_X.c_str());
+        getline (*Map, stroka_X);
+        //stroka_X.c_str() - конвертация string в const char*
+        //strlen - длина строки
+        //substr(a, b)- часть строки начиная с №a длиной b символов (6 символов под p.x_=_)
 
+        p[*nomerDirector].x = atoi(stroka_X.substr(6, strlen(stroka_X.c_str())-6).c_str());
+        getline (*Map, stroka_X);
+        p[*nomerDirector].y = atoi(stroka_X.substr(6, strlen(stroka_X.c_str())-6).c_str());
+        getline (*Map, stroka_X);
+        p[*nomerDirector].x1 = atoi(stroka_X.substr(7, strlen(stroka_X.c_str())-7).c_str());
+        getline (*Map, stroka_X);
+        p[*nomerDirector].y1 = atoi(stroka_X.substr(7, strlen(stroka_X.c_str())-7).c_str());
+
+        *nomerDirector = *nomerDirector + 1;
+    }
+}
+
+void initDirector(Director* d)
+{
+    d->speed = 1;
+    d->width = 61;
+    d->height = 96;
+    d->PointStartX1 = 27;
+    d->PointStartX2 = 24;
+    d->PointStartY = 74;
+    d->manyframeRight = 4;
+    d->manyframeLeft = 4;
+    d->manyframeUp = 4;
+    d->manyframeDown = 4;
+    directionFrameFrameTimer(&d->direction, &d->frame, &d->frameTimer);
+    d->radius = 170;
+}
+
+void fillCrashZone(Director* d)
+{
+    d->crash.x1 = d->x - 27;
+    d->crash.y1 = d->y - 12;
+    d->crash.x2 = d->x + 27;
+    d->crash.y2 = d->y + 12;
+}
+
+void catchCheck(Bomzh* b, Director d, bool R1)
+{
+    if((d.x - b->x) * (d.x - b->x) + (d.y - b->y) * (d.y - b->y) <= 75 && R1 == true)
+    {
+        b->life = b->life - 1;
+        txSelectFont ("Comic Sans MS", 20);
+        txSetColour(TX_WHITE);
+        txTextOut(d.x + 35 - absolutX, d.y - 100 - absolutY, "Что ты тут забыл ?");
+    }
+}
+
+
+void moveDirector(Director *d, Point* p, bool R1)
+{
     int predX = d->x;
     int predY = d->y;
     int maxCountOfFrames = 4;
 
-    if((d->x - p->x2) * (d->x - p->x2) + (d->y - p->y2) * (d->y - p->y2) <= d->radius * d->radius)
+    if((d->x - p->x2) * (d->x - p->x2) + (d->y - p->y2) * (d->y - p->y2) <= d->radius * d->radius && R1 == true)
     {
         p->nomerPoint = 2;
     }
-    else if(p->x == d->x && p->y == d->y)
+    else if( abs(p->x - d->x) < 10 && abs(p->y - d->y) < 10)
     {
         p->nomerPoint = 1;
     }
-    else if(p->x1 == d->x && p->y1 == d->y)
+    else if( abs(p->x1 - d->x) < 10 && abs(p->y1 - d->y) < 10)
     {
         p->nomerPoint = 0;
     }
@@ -80,29 +152,46 @@ void moveDirector(Director *d, Point *p)
         y = p->y2;
     }
 
-    if(d->y < y)
+    if(d->Stolknuls == 2)
     {
         d->y = d->y + d->speed;
         d->direction = DIRECTION_DOWN;
     }
-    else if(d->y > y){
+    else if(d->y < y - d->speed && d->Stolknuls != 1)
+    {
+        d->y = d->y + d->speed;
+        d->direction = DIRECTION_DOWN;
+    }
+    else if(d->y > y + d->speed && d->Stolknuls != 1){
         d->y = d->y - d->speed;
         d->direction = DIRECTION_UP;
     }
-    if(d->x < x)
+
+    if(d->Stolknuls == 1)
+    {
+        d->x = d->x - d->speed;
+        d->direction = DIRECTION_LEFT;
+    }
+    else if(d->x < x - d->speed && d->Stolknuls != 2)
     {
         d->x = d->x + d->speed;
         d->direction = DIRECTION_RIGHT;
-    } else if(d->x > x){
+    } else if(d->x > x + d->speed && d->Stolknuls != 2){
         d->x = d->x - d->speed;
         d->direction = DIRECTION_LEFT;
     }
 
     if(GameMode == 1)
     {
+        txArc (d->x - absolutX - d->radius, d->y - absolutY - d->radius,
+               d->x - absolutX + d->radius, d->y - absolutY + d->radius, 0, 180);
+        txArc (d->x - absolutX - d->radius, d->y - absolutY - d->radius,
+               d->x - absolutX + d->radius, d->y - absolutY + d->radius, 180, 180);
+
         char str[100];
         sprintf(str, "%d", p->nomerPoint);
-        txTextOut(400, 400, str);
+        txTextOut(d->x - absolutX, d->y + 100 - absolutY, str);
+
     }
 
     if (predX != d->x || predY != d->y)
@@ -128,22 +217,27 @@ void moveDirector(Director *d, Point *p)
 
 void drawDirector(Director d)
 {
- if (d.direction == DIRECTION_DOWN)
-{
-txTransparentBlt(txDC(),  d.x - d.PointStartX1 , d.y - d.PointStartY, d.width, d.height, d.picDown, d.frame * 61, 0, RGB(255, 255, 255));
+    if (d.direction == DIRECTION_DOWN)
+    {
+        txTransparentBlt(txDC(),  d.x - d.PointStartX1 - absolutX , d.y - d.PointStartY - absolutY, d.width, d.height, d.picDown, d.frame * 61, 0, RGB(255, 255, 255));
+    }
+    else if (d.direction == DIRECTION_UP)
+    {
+        txTransparentBlt(txDC(), d.x - d.PointStartX1 - absolutX, d.y - d.PointStartY - absolutY, d.width, d.height, d.picUp, d.frame * 61, 0, RGB(255, 255, 255));
+    }
+    else if (d.direction == DIRECTION_LEFT)
+    {
+        txTransparentBlt(txDC(), d.x - d.PointStartX2 - absolutX , d.y - d.PointStartY - absolutY, d.width - 6, d.height, d.picLeft, d.frame * 61, 0, RGB(255, 255, 255));
+    }
+    else if (d.direction == DIRECTION_RIGHT)
+    {
+        txTransparentBlt(txDC(), d.x - d.PointStartX2 - absolutX , d.y - d.PointStartY - absolutY, d.width - 6, d.height, d.picRight, d.frame * 61, 0, RGB(255, 255, 255));
+    }
+
+
+    if (d.Stolknuls > 0)
+    {
+        txTextOut(d.x - absolutX, d.y - 20 - absolutY, "I'm embarassed");
+    }
 }
 
-if (d.direction == DIRECTION_UP)
-{
-txTransparentBlt(txDC(), d.x - d.PointStartX1 , d.y - d.PointStartY , d.width, d.height, d.picUp, d.frame * 61, 0, RGB(255, 255, 255));
-}
-
-if (d.direction == DIRECTION_LEFT)
-{
-txTransparentBlt(txDC(), d.x - d.PointStartX2 , d.y - d.PointStartY, d.width - 6, d.height, d.picLeft, d.frame * 61, 0, RGB(255, 255, 255));
-}
-if (d.direction == DIRECTION_RIGHT)
-{
-txTransparentBlt(txDC(), d.x - d.PointStartX2 , d.y - d.PointStartY , d.width - 6, d.height, d.picRight, d.frame * 61, 0, RGB(255, 255, 255));
-}
-}

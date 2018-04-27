@@ -14,3 +14,9 @@ const int DIRECTION_LEFT = 2;
 const int DIRECTION_RIGHT = 3;
 
 const int GameMode = 1;
+int nomerLevel = 1;
+int TimeBeg = 0;
+int Time = 0;
+const int TimeVictory = 100;
+int abs_x = 0;
+int abs_y = 0;
